@@ -9,6 +9,7 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 # 核心算法库：图 + 最短路
 add_library(nav
     src/dijkstra.cpp
+    src/astar.cpp
 )
 target_include_directories(nav PUBLIC include)
 
@@ -21,3 +22,7 @@ enable_testing()
 add_executable(test_dijkstra tests/test_dijkstra.cpp)
 target_link_libraries(test_dijkstra PRIVATE nav)
 add_test(NAME dijkstra COMMAND test_dijkstra)
+
+add_executable(test_astar tests/test_astar.cpp)
+target_link_libraries(test_astar PRIVATE nav)
+add_test(NAME astar COMMAND test_astar)

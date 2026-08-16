@@ -1,7 +1,7 @@
-#include "nav/dijkstra.hpp"
-
 #include <cassert>
 #include <iostream>
+
+#include "nav/dijkstra.hpp"
 
 int main() {
     // 已知答案的小图，用来验证 Dijkstra 正确

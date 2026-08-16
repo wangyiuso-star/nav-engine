@@ -1,7 +1,7 @@
-#include "nav/dijkstra.hpp"
-
 #include <cstddef>
 #include <iostream>
+
+#include "nav/dijkstra.hpp"
 
 int main() {
     // 一个 5 个节点的小图，验证 Dijkstra

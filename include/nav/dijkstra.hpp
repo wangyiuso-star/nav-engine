@@ -1,8 +1,8 @@
 #pragma once
 
-#include "nav/graph.hpp"
-
 #include <vector>
+
+#include "nav/graph.hpp"
 
 namespace nav {
 
