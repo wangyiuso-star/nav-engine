@@ -12,6 +12,7 @@ add_library(nav
     src/astar.cpp
     src/io.cpp
     src/landmarks.cpp
+    src/ch.cpp
 )
 target_include_directories(nav PUBLIC include)
 
@@ -28,3 +29,7 @@ add_test(NAME dijkstra COMMAND test_dijkstra)
 add_executable(test_astar tests/test_astar.cpp)
 target_link_libraries(test_astar PRIVATE nav)
 add_test(NAME astar COMMAND test_astar)
+
+add_executable(test_ch tests/test_ch.cpp)
+target_link_libraries(test_ch PRIVATE nav)
+add_test(NAME ch COMMAND test_ch)
