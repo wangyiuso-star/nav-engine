@@ -10,6 +10,8 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 add_library(nav
     src/dijkstra.cpp
     src/astar.cpp
+    src/io.cpp
+    src/landmarks.cpp
 )
 target_include_directories(nav PUBLIC include)
 

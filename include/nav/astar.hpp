@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "nav/graph.hpp"
+#include "nav/stats.hpp"
 
 namespace nav {
 
@@ -14,6 +15,8 @@ namespace nav {
 // 且 heuristic(target) 应为 0。满足该条件时，结果保证是最短路。
 //
 // 常见启发式：地图上两点间的直线距离（直线 <= 实际道路距离）。
-int astar(const Graph& graph, int src, int target, const std::function<int(int)>& heuristic);
+// stats 非空时，会统计展开（settle）的节点数。
+int astar(const Graph& graph, int src, int target, const std::function<int(int)>& heuristic,
+          Stats* stats = nullptr);
 
 }  // namespace nav
