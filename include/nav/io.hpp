@@ -1,10 +1,10 @@
 #pragma once
 
-#include "nav/graph.hpp"
-
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "nav/graph.hpp"
 
 namespace nav {
 

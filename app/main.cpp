@@ -1,8 +1,3 @@
-#include "nav/astar.hpp"
-#include "nav/dijkstra.hpp"
-#include "nav/io.hpp"
-#include "nav/landmarks.hpp"
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -13,6 +8,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "nav/astar.hpp"
+#include "nav/dijkstra.hpp"
+#include "nav/io.hpp"
+#include "nav/landmarks.hpp"
 
 namespace {
 
@@ -121,8 +121,14 @@ int main(int argc, char* argv[]) {
     double min_xy = 1e18, max_xy = -1e18;
     for (int i = 0; i < n; ++i) {
         double s = map.coords[i].first + map.coords[i].second;
-        if (s < min_xy) { min_xy = s; src = i; }
-        if (s > max_xy) { max_xy = s; target = i; }
+        if (s < min_xy) {
+            min_xy = s;
+            src = i;
+        }
+        if (s > max_xy) {
+            max_xy = s;
+            target = i;
+        }
     }
 
     using Clock = std::chrono::high_resolution_clock;
@@ -133,8 +139,8 @@ int main(int argc, char* argv[]) {
     int dijkstra_dist = nav::dijkstra_point_to_point(map.graph, src, target, &dijkstra_stats);
     auto t1 = Clock::now();
     double dijkstra_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
-    std::cout << "Dijkstra: " << dijkstra_ms << " ms, 展开节点 "
-              << dijkstra_stats.nodes_expanded << ", dist = " << dijkstra_dist << "\n";
+    std::cout << "Dijkstra: " << dijkstra_ms << " ms, 展开节点 " << dijkstra_stats.nodes_expanded
+              << ", dist = " << dijkstra_dist << "\n";
 
     // ---- A* + 欧氏启发式（基线）----
     auto euclidean = [&](int node) -> int {
@@ -148,8 +154,8 @@ int main(int argc, char* argv[]) {
     int astar_dist = nav::astar(map.graph, src, target, euclidean, &astar_stats);
     t1 = Clock::now();
     double astar_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
-    std::cout << "A*+欧氏:  " << astar_ms << " ms, 展开节点 "
-              << astar_stats.nodes_expanded << ", dist = " << astar_dist << "\n";
+    std::cout << "A*+欧氏:  " << astar_ms << " ms, 展开节点 " << astar_stats.nodes_expanded
+              << ", dist = " << astar_dist << "\n";
 
     // ---- ALT：三种策略 × 四种 K，看「展开节点」越少越好 ----
     auto run_alt = [&](const std::vector<int>& lms) {
@@ -162,7 +168,7 @@ int main(int argc, char* argv[]) {
 
     const std::vector<int> ks = {4, 8, 16, 32};
     const std::vector<std::pair<std::string, std::function<std::vector<int>(int)>>> strategies = {
-        {"random",   [&](int k) { return pick_random(map, k); }},
+        {"random", [&](int k) { return pick_random(map, k); }},
         {"farthest", [&](int k) { return pick_farthest(map, k); }},
         {"boundary", [&](int k) { return pick_boundary(map, k); }},
     };

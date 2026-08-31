@@ -52,7 +52,7 @@ int dijkstra_point_to_point(const Graph& graph, int src, int target, Stats* stat
 
         if (d != dist[u]) continue;  // 过期记录，跳过
         if (stats) ++stats->nodes_expanded;
-        if (u == target) return d;   // 关键：到 target 就停
+        if (u == target) return d;  // 关键：到 target 就停
 
         for (const Edge& e : graph[u]) {
             if (dist[u] + e.weight < dist[e.to]) {

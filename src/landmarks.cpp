@@ -1,8 +1,8 @@
 #include "nav/landmarks.hpp"
 
-#include "nav/dijkstra.hpp"
-
 #include <cstdlib>
+
+#include "nav/dijkstra.hpp"
 
 namespace nav {
 
