@@ -5,3 +5,4 @@ build-*/
 # 生成/下载的地图数据（可用 tools/ 里的脚本重新生成）
 grid.txt
 hk_*.txt
+callgrind.out*
