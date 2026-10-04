@@ -139,56 +139,89 @@ CH::CH(const Graph& graph) : n_(static_cast<int>(graph.size())) {
 int CH::query(int s, int t, Stats* stats) const {
     if (s == t) return 0;
     const int INF = std::numeric_limits<int>::max();
+    const std::greater<Item> kGreater;  // 与 std::priority_queue<..., greater> 语义一致
 
-    std::vector<int> df(n_, INF), db(n_, INF);
-    df[s] = 0;
-    db[t] = 0;
+    // 复用堆：clear 保留容量，后续查询不再分配
+    fq_.clear();
+    bq_.clear();
 
-    using P = std::pair<int, int>;
-    std::priority_queue<P, std::vector<P>, std::greater<P>> fq, bq;
-    fq.push({0, s});
-    bq.push({0, t});
+    // ---- 前向：只沿向上边 ----
+    df_[s] = 0;
+    df_touched_.push_back(s);
+    fq_.push_back({0, s});
+    std::push_heap(fq_.begin(), fq_.end(), kGreater);
 
-    std::vector<char> settled_f(n_, 0), settled_b(n_, 0);
+    while (!fq_.empty()) {
+        const Item top = fq_.front();
+        std::pop_heap(fq_.begin(), fq_.end(), kGreater);
+        fq_.pop_back();
 
-    // 前向：只沿向上边
-    while (!fq.empty()) {
-        auto [d, u] = fq.top();
-        fq.pop();
-        if (d != df[u]) continue;
-        settled_f[u] = 1;
+        const int d = top.first;
+        const int u = top.second;
+        if (d != df_[u]) continue;  // 过期记录
+        settled_f_[u] = 1;
+        settled_f_touched_.push_back(u);
         if (stats) ++stats->nodes_expanded;
+
         for (const Edge& e : up_graph_[u]) {
-            if (df[u] + e.weight < df[e.to]) {
-                df[e.to] = df[u] + e.weight;
-                fq.push({df[e.to], e.to});
+            const int nd = df_[u] + e.weight;
+            if (nd < df_[e.to]) {
+                if (df_[e.to] == INF) df_touched_.push_back(e.to);  // 首次写入才登记
+                df_[e.to] = nd;
+                fq_.push_back({nd, e.to});
+                std::push_heap(fq_.begin(), fq_.end(), kGreater);
             }
         }
     }
 
-    // 后向：同样只沿向上边（无向图，反向前进即反向上升）
-    while (!bq.empty()) {
-        auto [d, u] = bq.top();
-        bq.pop();
-        if (d != db[u]) continue;
-        settled_b[u] = 1;
+    // ---- 后向：同样只沿向上边（无向图，反向前进即反向上升）----
+    db_[t] = 0;
+    db_touched_.push_back(t);
+    bq_.push_back({0, t});
+    std::push_heap(bq_.begin(), bq_.end(), kGreater);
+
+    while (!bq_.empty()) {
+        const Item top = bq_.front();
+        std::pop_heap(bq_.begin(), bq_.end(), kGreater);
+        bq_.pop_back();
+
+        const int d = top.first;
+        const int u = top.second;
+        if (d != db_[u]) continue;  // 过期记录
+        settled_b_[u] = 1;
+        settled_b_touched_.push_back(u);
         if (stats) ++stats->nodes_expanded;
+
         for (const Edge& e : up_graph_[u]) {
-            if (db[u] + e.weight < db[e.to]) {
-                db[e.to] = db[u] + e.weight;
-                bq.push({db[e.to], e.to});
+            const int nd = db_[u] + e.weight;
+            if (nd < db_[e.to]) {
+                if (db_[e.to] == INF) db_touched_.push_back(e.to);
+                db_[e.to] = nd;
+                bq_.push_back({nd, e.to});
+                std::push_heap(bq_.begin(), bq_.end(), kGreater);
             }
         }
     }
 
-    // 在峰点相遇
+    // ---- 在峰点相遇：只遍历前向 settle 过的节点，O(已 settle 数) ----
     int best = INF;
-    for (int u = 0; u < n_; ++u) {
-        if (settled_f[u] && settled_b[u]) {
-            int cand = df[u] + db[u];
+    for (const int u : settled_f_touched_) {
+        if (settled_b_[u]) {
+            const int cand = df_[u] + db_[u];
             if (cand < best) best = cand;
         }
     }
+
+    // ---- 精确复位：只还原本次碰过的节点，恢复不变式 ----
+    for (const int u : df_touched_) df_[u] = INF;
+    for (const int u : db_touched_) db_[u] = INF;
+    for (const int u : settled_f_touched_) settled_f_[u] = 0;
+    for (const int u : settled_b_touched_) settled_b_[u] = 0;
+    df_touched_.clear();
+    db_touched_.clear();
+    settled_f_touched_.clear();
+    settled_b_touched_.clear();
+
     return best == INF ? -1 : best;
 }
 
