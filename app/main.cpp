@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -118,6 +119,18 @@ int main(int argc, char* argv[]) {
     double ch_ms = std::chrono::duration<double, std::milli>(tq1 - tq0).count();
     std::cout << "CH: 预处理 " << ch_prep_ms << " ms, 查询 " << ch_ms << " ms, 展开节点 "
               << ch_stats.nodes_expanded << ", dist = " << ch_dist << "\n";
+
+    // ---- CH 重复查询：测平均耗时（预处理不计入，循环里只调 query）----
+    const int reps = 2000;
+    long long checksum = 0;
+    auto tr0 = Clock::now();
+    for (int i = 0; i < reps; ++i) {
+        checksum += ch.query(src, target);
+    }
+    auto tr1 = Clock::now();
+    double avg_us = std::chrono::duration<double, std::micro>(tr1 - tr0).count() / reps;
+    std::cout << "CH 查询平均 " << std::fixed << std::setprecision(2) << avg_us << " us (N=" << reps
+              << "), checksum=" << checksum << "\n";
 
     // ---- 正确性核对 ----
     if (astar_dist != dijkstra_dist || alt_dist != dijkstra_dist || ch_dist != dijkstra_dist) {

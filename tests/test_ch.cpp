@@ -1,6 +1,6 @@
-#include <cassert>
 #include <iostream>
 
+#include "check.hpp"
 #include "nav/ch.hpp"
 #include "nav/dijkstra.hpp"
 
@@ -20,7 +20,7 @@ int main() {
         for (int t = 0; t < 5; ++t) {
             int expected = nav::dijkstra_point_to_point(g, s, t);
             int got = ch.query(s, t);
-            assert(got == expected);
+            CHECK(got == expected);
         }
     }
 

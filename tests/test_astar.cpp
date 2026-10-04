@@ -1,9 +1,9 @@
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <utility>
 #include <vector>
 
+#include "check.hpp"
 #include "nav/astar.hpp"
 
 int main() {
@@ -29,14 +29,14 @@ int main() {
     };
 
     // 0 -> 4 最短：0->1->2->3->4 = 1+1+1+1 = 4
-    assert(nav::astar(g, 0, 4, make_heuristic(4)) == 4);
-    assert(nav::astar(g, 1, 4, make_heuristic(4)) == 3);  // 1->2->3->4
-    assert(nav::astar(g, 2, 4, make_heuristic(4)) == 2);  // 2->3->4
-    assert(nav::astar(g, 3, 4, make_heuristic(4)) == 1);  // 3->4
-    assert(nav::astar(g, 4, 4, make_heuristic(4)) == 0);  // 已在终点
+    CHECK(nav::astar(g, 0, 4, make_heuristic(4)) == 4);
+    CHECK(nav::astar(g, 1, 4, make_heuristic(4)) == 3);  // 1->2->3->4
+    CHECK(nav::astar(g, 2, 4, make_heuristic(4)) == 2);  // 2->3->4
+    CHECK(nav::astar(g, 3, 4, make_heuristic(4)) == 1);  // 3->4
+    CHECK(nav::astar(g, 4, 4, make_heuristic(4)) == 0);  // 已在终点
 
     // 不可达：4 没有出边，4 -> 0 到不了
-    assert(nav::astar(g, 4, 0, make_heuristic(0)) == -1);
+    CHECK(nav::astar(g, 4, 0, make_heuristic(0)) == -1);
 
     std::cout << "all tests passed\n";
     return 0;

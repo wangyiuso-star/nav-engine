@@ -1,6 +1,6 @@
-#include <cassert>
 #include <iostream>
 
+#include "check.hpp"
 #include "nav/dijkstra.hpp"
 
 int main() {
@@ -12,10 +12,10 @@ int main() {
     g[3] = {};
 
     auto dist = nav::dijkstra(g, 0);
-    assert(dist[0] == 0);
-    assert(dist[1] == 1);
-    assert(dist[2] == 3);
-    assert(dist[3] == 6);
+    CHECK(dist[0] == 0);
+    CHECK(dist[1] == 1);
+    CHECK(dist[2] == 3);
+    CHECK(dist[3] == 6);
 
     std::cout << "all tests passed\n";
     return 0;

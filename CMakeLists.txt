@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(nav_engine CXX)
 
+# 未显式指定构建类型时默认 Release（基准数字必须基于优化构建）
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
