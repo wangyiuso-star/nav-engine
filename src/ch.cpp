@@ -1,5 +1,6 @@
 #include "nav/ch.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <limits>
@@ -120,6 +121,19 @@ CH::CH(const Graph& graph) : n_(static_cast<int>(graph.size())) {
             }
         }
     }
+
+    // 查询缓冲区：一次性分配并建立不变式（query 中复用，避免每次 O(n) 分配/清零）
+    const int INF = std::numeric_limits<int>::max();
+    df_.assign(n_, INF);
+    db_.assign(n_, INF);
+    settled_f_.assign(n_, 0);
+    settled_b_.assign(n_, 0);
+    df_touched_.reserve(1024);
+    db_touched_.reserve(1024);
+    settled_f_touched_.reserve(1024);
+    settled_b_touched_.reserve(1024);
+    fq_.reserve(1024);
+    bq_.reserve(1024);
 }
 
 int CH::query(int s, int t, Stats* stats) const {
