@@ -145,10 +145,22 @@ CH::CH(const Graph& graph) : n_(static_cast<int>(graph.size())) {
     settled_b_touched_.reserve(1024);
     fq_.reserve(1024);
     bq_.reserve(1024);
+
+    // 路径重建缓冲（仅当 query 的 path != nullptr 时写入）
+    par_f_.assign(n_, ParInfo{});
+    par_b_.assign(n_, ParInfo{});
+    par_f_touched_.reserve(1024);
+    par_b_touched_.reserve(1024);
 }
 
-int CH::query(int s, int t, Stats* stats) const {
-    if (s == t) return 0;
+int CH::query(int s, int t, Stats* stats, std::vector<int>* path) const {
+    const bool want_path = (path != nullptr);
+    if (want_path) path->clear();
+
+    if (s == t) {
+        if (want_path) path->push_back(s);
+        return 0;
+    }
     const int INF = std::numeric_limits<int>::max();
     const std::greater<Item> kGreater;  // 与 std::priority_queue<..., greater> 语义一致
 
@@ -179,6 +191,10 @@ int CH::query(int s, int t, Stats* stats) const {
             if (nd < df_[e.to]) {
                 if (df_[e.to] == INF) df_touched_.push_back(e.to);  // 首次写入才登记
                 df_[e.to] = nd;
+                if (want_path) {
+                    if (par_f_[e.to].parent == -1) par_f_touched_.push_back(e.to);
+                    par_f_[e.to] = ParInfo{u, e.via, e.weight};
+                }
                 fq_.push_back({nd, e.to});
                 std::push_heap(fq_.begin(), fq_.end(), kGreater);
             }
@@ -208,6 +224,10 @@ int CH::query(int s, int t, Stats* stats) const {
             if (nd < db_[e.to]) {
                 if (db_[e.to] == INF) db_touched_.push_back(e.to);
                 db_[e.to] = nd;
+                if (want_path) {
+                    if (par_b_[e.to].parent == -1) par_b_touched_.push_back(e.to);
+                    par_b_[e.to] = ParInfo{u, e.via, e.weight};
+                }
                 bq_.push_back({nd, e.to});
                 std::push_heap(bq_.begin(), bq_.end(), kGreater);
             }
@@ -216,10 +236,36 @@ int CH::query(int s, int t, Stats* stats) const {
 
     // ---- 在峰点相遇：只遍历前向 settle 过的节点，O(已 settle 数) ----
     int best = INF;
+    int meet = -1;
     for (const int u : settled_f_touched_) {
         if (settled_b_[u]) {
             const int cand = df_[u] + db_[u];
-            if (cand < best) best = cand;
+            if (cand < best) {
+                best = cand;
+                meet = u;
+            }
+        }
+    }
+
+    // ---- 路径重建：拼装双向链，并递归展开捷径 ----
+    if (want_path && best != INF && meet != -1) {
+        // 前向链：meet → ... → s（沿 par_f_），反转后即 s → ... → meet
+        std::vector<int> fwd;
+        for (int x = meet; x != -1; x = par_f_[x].parent) fwd.push_back(x);
+        std::reverse(fwd.begin(), fwd.end());
+
+        path->push_back(s);
+        for (std::size_t i = 0; i + 1 < fwd.size(); ++i) {
+            expand(fwd[i], fwd[i + 1], par_f_[fwd[i + 1]].weight, *path);
+        }
+
+        // 后向链：meet → par_b_[meet] → ... → t（无向图下这个顺序就是真实行进方向）
+        int x = meet;
+        while (x != t) {
+            const int nx = par_b_[x].parent;
+            if (nx == -1) break;  // 理论不会发生
+            expand(x, nx, par_b_[x].weight, *path);
+            x = nx;
         }
     }
 
@@ -228,12 +274,36 @@ int CH::query(int s, int t, Stats* stats) const {
     for (const int u : db_touched_) db_[u] = INF;
     for (const int u : settled_f_touched_) settled_f_[u] = 0;
     for (const int u : settled_b_touched_) settled_b_[u] = 0;
+    if (want_path) {
+        for (const int u : par_f_touched_) par_f_[u].parent = -1;
+        for (const int u : par_b_touched_) par_b_[u].parent = -1;
+        par_f_touched_.clear();
+        par_b_touched_.clear();
+    }
     df_touched_.clear();
     db_touched_.clear();
     settled_f_touched_.clear();
     settled_b_touched_.clear();
 
     return best == INF ? -1 : best;
+}
+
+const CH::ChEdge* CH::find_edge(int a, int b, int weight) const {
+    for (const ChEdge& e : adj_[a]) {
+        if (e.to == b && e.weight == weight) return &e;
+    }
+    return nullptr;
+}
+
+void CH::expand(int a, int b, int weight, std::vector<int>& out) const {
+    const ChEdge* e = find_edge(a, b, weight);
+    if (e == nullptr || e->via == -1) {
+        out.push_back(b);  // 原始边（或查不到，退化为直接输出）
+        return;
+    }
+    // 捷径 a—b 代表真实路径 a → via → b，递归展开两段
+    expand(a, e->via, e->w1, out);
+    expand(e->via, b, e->w2, out);
 }
 
 }  // namespace nav

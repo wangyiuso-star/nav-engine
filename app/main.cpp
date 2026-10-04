@@ -162,6 +162,20 @@ int main(int argc, char* argv[]) {
     std::cout << "CH 查询平均 " << std::fixed << std::setprecision(2) << avg_us << " us (N=" << reps
               << "), checksum=" << checksum << "\n";
 
+    // ---- CH 路径重建：另跑一次（不计时）；校验捷径是否被完整展开 ----
+    {
+        std::vector<int> ch_path;
+        const int ch_dist_check = ch.query(src, target, nullptr, &ch_path);
+        const int ch_cost = nav::path_cost(map.graph, ch_path);
+        const bool ok = (ch_dist_check == ch_dist) && (ch_cost == ch_dist) && !ch_path.empty();
+        std::cout << "CH 路径: " << ch_path.size() << " 节点, 校验 " << ch_cost << " (dist "
+                  << ch_dist << ") " << (ok ? "✓" : "✗") << "\n";
+        if (!ok) {
+            std::cout << "错误：CH 路径校验失败（捷径展开有误）！\n";
+            return 1;
+        }
+    }
+
     // ---- 正确性核对 ----
     if (astar_dist != dijkstra_dist || alt_dist != dijkstra_dist || ch_dist != dijkstra_dist) {
         std::cout << "错误：结果不一致！\n";
