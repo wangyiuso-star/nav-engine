@@ -18,6 +18,7 @@ add_library(nav
     src/io.cpp
     src/landmarks.cpp
     src/ch.cpp
+    src/path.cpp
 )
 target_include_directories(nav PUBLIC include)
 

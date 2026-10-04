@@ -16,7 +16,8 @@ namespace nav {
 //
 // 常见启发式：地图上两点间的直线距离（直线 <= 实际道路距离）。
 // stats 非空时，会统计展开（settle）的节点数。
+// path 非空时：可达则填入 src -> ... -> target 的节点序列（含两端）；不可达则 clear()。
 int astar(const Graph& graph, int src, int target, const std::function<int(int)>& heuristic,
-          Stats* stats = nullptr);
+          Stats* stats = nullptr, std::vector<int>* path = nullptr);
 
 }  // namespace nav

@@ -13,6 +13,8 @@ std::vector<int> dijkstra(const Graph& graph, int src, Stats* stats = nullptr);
 
 // 点到点 Dijkstra：到达 target 就提前返回，返回 dist[target]；不可达 -1。
 // 与上面的区别：上面算「到所有点」，这里只算「到 target」（导航场景用它）。
-int dijkstra_point_to_point(const Graph& graph, int src, int target, Stats* stats = nullptr);
+// path 非空时：可达则填入 src -> ... -> target 的节点序列（含两端）；不可达则 clear()。
+int dijkstra_point_to_point(const Graph& graph, int src, int target, Stats* stats = nullptr,
+                            std::vector<int>* path = nullptr);
 
 }  // namespace nav

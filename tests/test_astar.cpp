@@ -5,6 +5,7 @@
 
 #include "check.hpp"
 #include "nav/astar.hpp"
+#include "nav/path.hpp"
 
 int main() {
     // 5 个带坐标的节点，终点是 4
@@ -37,6 +38,40 @@ int main() {
 
     // 不可达：4 没有出边，4 -> 0 到不了
     CHECK(nav::astar(g, 4, 0, make_heuristic(0)) == -1);
+
+    // ---- 路径重建 ----
+    std::vector<int> path;
+
+    // 0 -> 4：路径 0->1->2->3->4，总权 4
+    CHECK(nav::astar(g, 0, 4, make_heuristic(4), nullptr, &path) == 4);
+    CHECK(!path.empty());
+    CHECK(path.front() == 0);
+    CHECK(path.back() == 4);
+    CHECK(nav::path_cost(g, path) == 4);
+
+    // 2 -> 4：路径 2->3->4，总权 2
+    CHECK(nav::astar(g, 2, 4, make_heuristic(4), nullptr, &path) == 2);
+    CHECK(path.front() == 2);
+    CHECK(path.back() == 4);
+    CHECK(nav::path_cost(g, path) == 2);
+
+    // 3 -> 4：路径 3->4，总权 1
+    CHECK(nav::astar(g, 3, 4, make_heuristic(4), nullptr, &path) == 1);
+    CHECK(path.front() == 3);
+    CHECK(path.back() == 4);
+    CHECK(nav::path_cost(g, path) == 1);
+
+    // src == target：单节点路径 [4]，总权 0
+    CHECK(nav::astar(g, 4, 4, make_heuristic(4), nullptr, &path) == 0);
+    CHECK(path.size() == 1);
+    CHECK(path.front() == 4);
+    CHECK(path.back() == 4);
+    CHECK(nav::path_cost(g, path) == 0);
+
+    // 不可达：4 -> 0；path 必须被清空
+    path.assign(5, 42);  // 先塞垃圾，验证确实被 clear()
+    CHECK(nav::astar(g, 4, 0, make_heuristic(0), nullptr, &path) == -1);
+    CHECK(path.empty());
 
     std::cout << "all tests passed\n";
     return 0;

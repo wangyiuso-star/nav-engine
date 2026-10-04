@@ -10,6 +10,7 @@
 #include "nav/dijkstra.hpp"
 #include "nav/io.hpp"
 #include "nav/landmarks.hpp"
+#include "nav/path.hpp"
 
 namespace {
 
@@ -78,6 +79,21 @@ int main(int argc, char* argv[]) {
     std::cout << "Dijkstra: " << dijkstra_ms << " ms, 展开节点 " << dijkstra_stats.nodes_expanded
               << ", dist = " << dijkstra_dist << "\n";
 
+    // ---- 路径重建（Dijkstra）：另跑一次（不计时，保持上面的性能数字可比）----
+    {
+        std::vector<int> dij_path;
+        const int dij_dist_check =
+            nav::dijkstra_point_to_point(map.graph, src, target, nullptr, &dij_path);
+        const int dij_cost = nav::path_cost(map.graph, dij_path);
+        const bool ok = (dij_dist_check == dijkstra_dist) && (dij_cost == dijkstra_dist);
+        std::cout << "Dijkstra 路径: " << dij_path.size() << " 节点, 校验 " << dij_cost << " (dist "
+                  << dijkstra_dist << ") " << (ok ? "✓" : "✗") << "\n";
+        if (!ok) {
+            std::cout << "错误：Dijkstra 路径校验失败！\n";
+            return 1;
+        }
+    }
+
     // ---- A* + 欧氏启发式（基线）----
     auto euclidean = [&](int node) -> int {
         double dx = map.coords[node].first - map.coords[target].first;
@@ -92,6 +108,20 @@ int main(int argc, char* argv[]) {
     double astar_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
     std::cout << "A*+欧氏:  " << astar_ms << " ms, 展开节点 " << astar_stats.nodes_expanded
               << ", dist = " << astar_dist << "\n";
+
+    // ---- 路径重建（A*+欧氏）：另跑一次（不计时）----
+    {
+        std::vector<int> a_path;
+        const int a_dist_check = nav::astar(map.graph, src, target, euclidean, nullptr, &a_path);
+        const int a_cost = nav::path_cost(map.graph, a_path);
+        const bool ok = (a_dist_check == astar_dist) && (a_cost == astar_dist);
+        std::cout << "A*+欧氏 路径: " << a_path.size() << " 节点, 校验 " << a_cost << " (dist "
+                  << astar_dist << ") " << (ok ? "✓" : "✗") << "\n";
+        if (!ok) {
+            std::cout << "错误：A* 路径校验失败！\n";
+            return 1;
+        }
+    }
 
     // ---- A* + ALT（farthest, K=8）----
     std::vector<int> landmarks = pick_farthest(map, 8);

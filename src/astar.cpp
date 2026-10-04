@@ -1,5 +1,6 @@
 #include "nav/astar.hpp"
 
+#include <algorithm>
 #include <functional>
 #include <limits>
 #include <queue>
@@ -29,13 +30,18 @@ struct CompareAStar {
 }  // namespace
 
 int astar(const Graph& graph, int src, int target, const std::function<int(int)>& heuristic,
-          Stats* stats) {
+          Stats* stats, std::vector<int>* path) {
     // A* 算法
     // g[u] 表示从 src 到 u 的最短距离
     // key = f[u] = g[u] + h[u]，h[u] 是启发式函数
     const int INF = std::numeric_limits<int>::max();
     std::vector<int> g(graph.size(), INF);
     g[src] = 0;
+
+    // 只有需要路径时才分配 parent：避免给「只要距离」的调用增加一次 O(n) 分配。
+    const bool want_path = (path != nullptr);
+    std::vector<int> parent;
+    if (want_path) parent.assign(graph.size(), -1);
 
     std::priority_queue<AStarState, std::vector<AStarState>, CompareAStar> pq;
     pq.push({heuristic(src), 0, src});
@@ -47,16 +53,27 @@ int astar(const Graph& graph, int src, int target, const std::function<int(int)>
 
         if (s.g != g[u]) continue;  // 过期记录，跳过
         if (stats) ++stats->nodes_expanded;
-        if (u == target) return g[u];
+        if (u == target) {
+            if (want_path) {
+                // 沿 parent 回溯：target -> ... -> src，再反转
+                path->clear();
+                for (int v = target; v != -1; v = parent[v]) path->push_back(v);
+                std::reverse(path->begin(), path->end());
+            }
+            return g[u];
+        }
 
         for (const Edge& e : graph[u]) {
             int ng = g[u] + e.weight;
             if (ng < g[e.to]) {
                 g[e.to] = ng;
+                if (want_path) parent[e.to] = u;
                 pq.push({ng + heuristic(e.to), ng, e.to});
             }
         }
     }
+
+    if (want_path) path->clear();  // 不可达
     return -1;
 }
 
