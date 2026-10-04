@@ -14,8 +14,9 @@ namespace {
 
 // witness search：在「去掉 v、且跳过已收缩节点」的当前图上，
 // 从 u 出发能否在 limit 距离内到达 w。到达 = 有见证路径 = 无需捷径。
-bool has_witness(const std::vector<std::vector<Edge>>& adj, const std::vector<char>& contracted,
-                 int u, int w, int v, int limit) {
+// 只读 e.to / e.weight，不关心捷径信息。
+bool has_witness(const std::vector<std::vector<CH::ChEdge>>& adj,
+                 const std::vector<char>& contracted, int u, int w, int v, int limit) {
     std::unordered_map<int, int> dist;
     dist[u] = 0;
 
@@ -33,7 +34,7 @@ bool has_witness(const std::vector<std::vector<Edge>>& adj, const std::vector<ch
         if (x == w) return true;
         if (++settled > 128) return false;  // 限制规模；安全（只会多加捷径）
 
-        for (const Edge& e : adj[x]) {
+        for (const CH::ChEdge& e : adj[x]) {
             if (e.to == v || contracted[e.to]) continue;
             int nd = d + e.weight;
             auto nit = dist.find(e.to);
@@ -49,8 +50,14 @@ bool has_witness(const std::vector<std::vector<Edge>>& adj, const std::vector<ch
 }  // namespace
 
 CH::CH(const Graph& graph) : n_(static_cast<int>(graph.size())) {
-    // 可变邻接表：原始边 + 后续加入的捷径
-    std::vector<std::vector<Edge>> adj(graph.begin(), graph.end());
+    // 完整邻接表（成员 adj_）：先把原始边全部拷入，按「原始边」约定取 via = -1
+    adj_.assign(n_, {});
+    for (int u = 0; u < n_; ++u) {
+        adj_[u].reserve(graph[u].size());
+        for (const Edge& e : graph[u]) {
+            adj_[u].push_back(ChEdge{e.to, e.weight, -1, 0, 0});
+        }
+    }
 
     std::vector<char> contracted(n_, 0);
     rank_.assign(n_, -1);
@@ -58,7 +65,7 @@ CH::CH(const Graph& graph) : n_(static_cast<int>(graph.size())) {
     // 节点当前「度」（只数未收缩邻居）
     auto degree = [&](int x) {
         int d = 0;
-        for (const Edge& e : adj[x]) {
+        for (const ChEdge& e : adj_[x]) {
             if (!contracted[e.to]) ++d;
         }
         return d;
@@ -83,9 +90,9 @@ CH::CH(const Graph& graph) : n_(static_cast<int>(graph.size())) {
         }
         if (v == -1) break;  // 理论不会发生
 
-        // 未收缩邻居：(权重, 节点)
+        // 未收缩邻居：(v 到该邻居的权重, 节点)
         std::vector<std::pair<int, int>> neighbors;
-        for (const Edge& e : adj[v]) {
+        for (const ChEdge& e : adj_[v]) {
             if (!contracted[e.to]) neighbors.push_back({e.weight, e.to});
         }
 
@@ -94,10 +101,14 @@ CH::CH(const Graph& graph) : n_(static_cast<int>(graph.size())) {
             for (std::size_t j = i + 1; j < neighbors.size(); ++j) {
                 int u = neighbors[i].second;
                 int w = neighbors[j].second;
-                int len = neighbors[i].first + neighbors[j].first;
-                if (!has_witness(adj, contracted, u, w, v, len)) {
-                    adj[u].push_back({w, len});
-                    adj[w].push_back({u, len});
+                int wu = neighbors[i].first;  // u—v 的权重
+                int ww = neighbors[j].first;  // w—v 的权重
+                int len = wu + ww;
+                if (!has_witness(adj_, contracted, u, w, v, len)) {
+                    // u—w 捷径代表真实路径 u → v → w：先 u→v（wu），再 v→w（ww）
+                    adj_[u].push_back(ChEdge{w, len, v, wu, ww});
+                    // w—u 捷径代表真实路径 w → v → u：先 w→v（ww），再 v→u（wu）
+                    adj_[w].push_back(ChEdge{u, len, v, ww, wu});
                 }
             }
         }
@@ -112,10 +123,10 @@ CH::CH(const Graph& graph) : n_(static_cast<int>(graph.size())) {
         }
     }
 
-    // 构建 upward 图：每条边只保留「低 rank -> 高 rank」方向
+    // 构建 upward 图：每条边只保留「低 rank -> 高 rank」方向（via / w1 / w2 原样保留）
     up_graph_.assign(n_, {});
     for (int u = 0; u < n_; ++u) {
-        for (const Edge& e : adj[u]) {
+        for (const ChEdge& e : adj_[u]) {
             if (rank_[e.to] > rank_[u]) {
                 up_graph_[u].push_back(e);
             }
@@ -163,7 +174,7 @@ int CH::query(int s, int t, Stats* stats) const {
         settled_f_touched_.push_back(u);
         if (stats) ++stats->nodes_expanded;
 
-        for (const Edge& e : up_graph_[u]) {
+        for (const ChEdge& e : up_graph_[u]) {
             const int nd = df_[u] + e.weight;
             if (nd < df_[e.to]) {
                 if (df_[e.to] == INF) df_touched_.push_back(e.to);  // 首次写入才登记
@@ -192,7 +203,7 @@ int CH::query(int s, int t, Stats* stats) const {
         settled_b_touched_.push_back(u);
         if (stats) ++stats->nodes_expanded;
 
-        for (const Edge& e : up_graph_[u]) {
+        for (const ChEdge& e : up_graph_[u]) {
             const int nd = db_[u] + e.weight;
             if (nd < db_[e.to]) {
                 if (db_[e.to] == INF) db_touched_.push_back(e.to);
