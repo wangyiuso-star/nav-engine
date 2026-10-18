@@ -42,12 +42,14 @@ jobs:
       - name: Unit tests
         run: ctest --test-dir build --output-on-failure
 
-      # 端到端：在确定性合成网格上跑四种算法，nav_cli 在距离不一致或路径校验失败时返回非 0
+      # 端到端：在确定性合成网格上跑四种算法。nav_cli 在距离不一致或路径校验失败时返回非 0，
+      # 这里再断言一次：三个算法各有一行 "[ok]"，最后一行是四种算法距离一致。
       - name: End-to-end run on a synthetic grid
         run: |
           python3 tools/gen_grid.py 120 120 0.2 /tmp/grid.txt
           ./build/nav_cli /tmp/grid.txt | tee /tmp/e2e.log
-          test "$(grep -c '✓' /tmp/e2e.log)" -eq 3
+          grep -q 'all algorithms agree' /tmp/e2e.log
+          test "$(grep -c '\[ok\]' /tmp/e2e.log)" -eq 3
 
   sanitizers:
     name: ASan + UBSan · Debug

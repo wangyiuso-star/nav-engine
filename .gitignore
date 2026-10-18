@@ -17,6 +17,9 @@ hk_*.txt
 .DS_Store
 *.swp
 
+# 演示图渲染用的路径导出（tools/render_demo.py 的输入，可重新生成）
+route*.txt
+
 # Python
 __pycache__/
 *.pyc
