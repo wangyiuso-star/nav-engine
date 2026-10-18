@@ -2,7 +2,22 @@
 build/
 build-*/
 
+# 性能剖析产物（valgrind / callgrind）
+callgrind.out*
+
 # 生成/下载的地图数据（可用 tools/ 里的脚本重新生成）
 grid.txt
 hk_*.txt
-callgrind.out*
+# 例外：README 里基准数字对应的数据集，随仓库提供以便直接复现
+!hk_metro.txt
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
