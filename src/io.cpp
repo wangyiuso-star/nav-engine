@@ -8,7 +8,7 @@ namespace nav {
 Map load_map(const std::string& path) {
     std::ifstream in(path);
     if (!in) {
-        throw std::runtime_error("无法打开文件: " + path);
+        throw std::runtime_error("error: cannot open map file: " + path);
     }
 
     int n = 0, m = 0;
