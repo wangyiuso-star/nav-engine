@@ -11,11 +11,13 @@ top of a hand-written graph, with full **route reconstruction** — every algori
 node-by-node path, not just the distance.
 
 Around **1,000 lines of C++** (plus 190 lines of tests), STL only, on a
-**42,173-node / 88,690-edge** OpenStreetMap extract of Hong Kong. Contraction Hierarchies answers
-a cross-city query in **8.8 µs** while touching **428 of 42,173 nodes** — **98× fewer than
-Dijkstra**, and **3.1× faster than the same code before profiling**.
+**42,173-node / 88,690-edge** OpenStreetMap extract — a **≈9.5 km × 9.0 km** slice of central
+Hong Kong around Victoria Harbour (Hong Kong Island north shore + Kowloon peninsula), not the
+whole territory. Contraction Hierarchies answers a cross-city query in **8.8 µs** while touching
+**428 of 42,173 nodes** — **98× fewer than Dijkstra**, and **3.1× faster than the same code
+before profiling**.
 
-![Contraction Hierarchies query on the Hong Kong road network](docs/demo.gif)
+![Contraction Hierarchies query on a 9.5 km × 9.0 km OpenStreetMap extract of central Hong Kong](docs/demo.gif)
 
 ## The 30-second version
 
@@ -83,8 +85,10 @@ It exits non-zero if anything disagrees — which is what the CI end-to-end step
 
 ## Benchmark results
 
-Graph: Hong Kong metro area (Central + Tsim Sha Tsui), **42,173 nodes / 88,690 edges**.
-Node counts are deterministic; timings are from `-O3` builds and vary a few percent run to run.
+Graph: **≈9.5 km × 9.0 km** of central Hong Kong around Victoria Harbour (Hong Kong Island north
+shore + Kowloon peninsula), **42,173 nodes / 88,690 edges**, taken from OpenStreetMap via the
+Overpass API — a community dataset, not the government's official road network. Node counts are
+deterministic; timings are from `-O3` builds and vary a few percent run to run.
 
 | Algorithm | Nodes expanded | Query time | Shortest distance |
 |-----------|---------------|------------|-------------------|
@@ -167,8 +171,29 @@ version so formatting cannot drift with the runner image.
   measurement discipline, not deployment.
 - **Preprocessing is offline and in-memory.** No graph serialisation, so CH is rebuilt per
   process start (~165 ms here).
+- **The bundled dataset is a small slice.** ≈86 km² of central Hong Kong (≈9.5 × 9.0 km); the
+  New Territories, Lantau and the outlying islands are not in it. `tools/fetch_osm.py` takes a
+  bbox, so a territory-wide extract is one command away — but a bigger extract will contain
+  one-way streets, which the importer deliberately flattens and CH assumes away (see above).
 
 ## Data
+
+### What the bundled dataset actually is
+
+| | |
+|---|---|
+| **Source** | OpenStreetMap via the Overpass API — a community dataset, **not** an official government road network |
+| **Coverage** | ≈9.5 km × 9.0 km bounding box (≈86 km²) around Victoria Harbour: Hong Kong Island north shore + Kowloon peninsula |
+| **Size** | 42,173 nodes / 88,690 edges, motor roads only (`motorway` … `residential`, no footpaths or cycleways) |
+| **Coordinates** | **Metres, not lat/lon** — equirectangular projection around the bbox centre, so absolute position depends on the bbox used at fetch time |
+| **Edge weight** | Straight-line distance in metres, rounded up (keeps the Euclidean heuristic admissible) |
+| **Missing** | New Territories, Lantau and the outlying islands; one-way and turn restrictions |
+
+Everything else — including a different city, or a government dataset converted to this format —
+works without touching the algorithms: the engine only ever sees the text format below. The one
+thing to watch is directionality (see the CH caveat in *Limitations*).
+
+### File format
 
 The engine reads a simple text format, produced by the scripts in `tools/`:
 
